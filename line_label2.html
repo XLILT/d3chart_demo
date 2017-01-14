@@ -13,7 +13,7 @@
 }
 
 </style>
-<svg width="960" height="500"></svg>
+<svg width="1800" height="500"></svg>
 <script src="js/d3/d3.js"></script>
 <script>
 
@@ -33,6 +33,10 @@ var line = d3.svg.line()
     .x(function(d) { return x(d.date); })
     .y(function(d) { return y(d.close); });
 
+var line_open = d3.svg.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.open); });
+
 //var parseTime = d3.timeParse("%d-%b-%y");
 
 d3.tsv("data.tsv", function(d) {
@@ -40,12 +44,16 @@ d3.tsv("data.tsv", function(d) {
   //d.date = parseTime(d.date);
   d.date = d3.time.format("%d-%b-%y").parse(d.date);
   d.close = +d.close;
+  d.open = +d.open;
   return d;
 }, function(error, data) {
   if (error) throw error;
 
   x.domain(d3.extent(data, function(d) { return d.date; }));
-  y.domain(d3.extent(data, function(d) { return d.close; }));
+  var close_extent = d3.extent(data, function(d) { return d.close; });
+  var open_extent = d3.extent(data, function(d) { return d.open; });
+  y.domain([close_extent[0] < open_extent[0] ? close_extent[0] : open_extent[0],
+      close_extent[1] > open_extent[1] ? close_extent[1] : open_extent[1]]);
 
   //console.log(data);
   //console.log(d3.extent(data, function(d) { return d.date; }));
@@ -54,7 +62,9 @@ d3.tsv("data.tsv", function(d) {
       .attr("class", "axis axis--x")
       .attr("transform", "translate(0," + height + ")")
       //.call(d3.axisBottom(x));
-      .call(d3.svg.axis().orient('bottom').ticks(d3.time.year, 1).scale(x))
+      .call(d3.svg.axis().orient('bottom').ticks(d3.time.day, 1).tickFormat(function(d) {
+              return d3.time.format("%m/%d")(d);
+           }).scale(x))
 
   g.append("g")
       .attr("class", "axis axis--y")
@@ -71,6 +81,12 @@ d3.tsv("data.tsv", function(d) {
   g.append("path")
       .datum(data)
       .attr("d", line)
+      //.attr("d", line(data))
+      .attr("class", "line");
+
+  g.append("path")
+      .datum(data)
+      .attr("d", line_open)
       //.attr("d", line(data))
       .attr("class", "line");
 
